@@ -8,7 +8,7 @@ Light bulb went out. I couldn't remember what type of bulb it was to replace it,
 
 I'm thinking I will take a picture of the item and it will detect the light bulb (and where in your home it is) and give you information about it so you can buy or something.
 
-What, I think, seprates this to others is that I don't want google search result of bunch of products that I don't know.
+What, I think, seprates this from others is that I don't want google search result of bunch of products that I don't know.
 
 I want the same product that I bought last time. This will give a link that I bought last time so you can buy it again.
 

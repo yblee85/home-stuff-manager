@@ -1,24 +1,19 @@
-export type { AppRouter } from './trpc.js'
-
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
-import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify'
-import { appRouter } from './trpc.js'
+import cookie from '@fastify/cookie'
 import { runMigrations } from './db/migrate.js'
+import { authRoutes } from './routers/auth.js'
 
 const server = Fastify({ logger: true })
 
 async function main() {
   await runMigrations()
 
-  await server.register(cors, { origin: true })
-
-  await server.register(fastifyTRPCPlugin, {
-    prefix: '/trpc',
-    trpcOptions: { router: appRouter },
-  })
+  await server.register(cors, { origin: true, credentials: true })
+  await server.register(cookie)
 
   server.get('/health', async () => ({ status: 'ok' }))
+  await server.register(authRoutes, { prefix: '/auth' })
 
   await server.listen({ port: 3001, host: '0.0.0.0' })
 }

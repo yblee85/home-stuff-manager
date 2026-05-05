@@ -43,13 +43,14 @@ A multi-user household inventory app. Users photo an item, the app detects its c
 
 ### Architecture
 - Monorepo with two packages: `web` (Next.js PWA) and `api` (Fastify TypeScript)
-- Frontend and backend communicate via tRPC for end-to-end type safety
+- Frontend and backend communicate via REST API
 - Deployed locally via Docker Compose with 3 containers: `web`, `api`, `db`
 
 ### Auth module
-- Auth.js handles user registration, login, and sessions
-- Sessions stored in Postgres (no Redis)
-- Auth is enforced at the tRPC router layer
+- Backend API handles registration, login, logout, and session validation
+- API issues opaque `session_id` cookie (`HttpOnly`, `SameSite=Lax`) on successful login
+- Session records are stored in Postgres and invalidated on logout
+- Auth is enforced at the API route layer
 
 ### Location module
 - Data hierarchy: Location → Zone
@@ -70,10 +71,10 @@ A multi-user household inventory app. Users photo an item, the app detects its c
 - ImageMagick resizes and compresses uploaded photos server-side before saving
 - Abstracted behind a simple interface to allow swapping storage backend later
 
-### tRPC router
-- Single tRPC router in Fastify exposes procedures for: auth, locations, zones, items
-- Next.js frontend consumes via tRPC client
-- All procedures protected by auth middleware except login/register
+### REST API
+- Fastify exposes REST routes for: auth, locations, zones, items
+- Next.js frontend consumes via fetch
+- All routes protected by auth middleware except login/register
 
 ### Database
 - Postgres via Docker
@@ -87,7 +88,7 @@ A multi-user household inventory app. Users photo an item, the app detects its c
   - **Auth module**: registration, login, session creation/invalidation
   - **Location module**: CRUD for Location/Zone, membership access control
   - **Item module**: CRUD, spec validation, photo attachment
-  - **tRPC router**: integration tests covering auth enforcement and correct data returned per procedure
+  - **REST API**: integration tests covering auth enforcement and correct data returned per endpoint
 - Use a real test Postgres instance (not mocks) to avoid mock/prod divergence
 
 ## Out of Scope

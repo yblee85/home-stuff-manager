@@ -5,9 +5,9 @@
 ## Architectural decisions
 
 - **Repo**: Monorepo — `web` (Next.js PWA) and `api` (Fastify TypeScript)
-- **API**: tRPC — single router in `api`, consumed by `web` via tRPC client
+- **API**: REST — Fastify routes in `api`, consumed by `web` via fetch
 - **Database**: Postgres via Docker; Drizzle ORM for schema + migrations
-- **Auth**: Auth.js — sessions stored in Postgres, enforced at tRPC middleware layer
+- **Auth**: Backend cookie sessions — API owns login/logout/session, web forwards credentials and uses `session_id` cookie
 - **File storage**: Local filesystem (Docker named volume); path stored in DB
 - **Image processing**: ImageMagick server-side resize/compress on upload
 - **ML**: TensorFlow.js + MobileNet pretrained model, runs server-side in `api`
@@ -16,7 +16,7 @@
 - **Location hierarchy**: Location → Zone (items belong to a Zone)
 - **Item fields**: `name`, `category`, `tags[]`, `photo`, `purchase_url`, `specs { dimension { w, l, h, unit }, weight { value, unit }, info }`, `notes`, `created_at`
 - **Routes (web)**: `/`, `/login`, `/register`, `/locations`, `/locations/[id]`, `/locations/[id]/zones/[zoneId]`, `/items/[id]`, `/items/[id]/edit`
-- **tRPC procedures**: `auth.*`, `locations.*`, `zones.*`, `items.*`
+- **REST routes**: `auth.*`, `locations.*`, `zones.*`, `items.*`
 
 ---
 
@@ -26,14 +26,14 @@
 
 ### What to build
 
-Set up the full project skeleton end-to-end: monorepo structure, Docker Compose wiring all three containers, Next.js and Fastify both running, tRPC connected between them (a single working procedure), and Drizzle connected to Postgres with migrations running on startup.
+Set up the full project skeleton end-to-end: monorepo structure, Docker Compose wiring all three containers, Next.js and Fastify both running, REST API connected between them (a single working endpoint), and Drizzle connected to Postgres with migrations running on startup.
 
 ### Acceptance criteria
 
 - [ ] `docker compose up` starts all three containers without errors
 - [ ] Next.js `web` is reachable in browser
 - [ ] Fastify `api` is reachable and responds to health check
-- [ ] tRPC call from `web` to `api` returns a response
+- [ ] REST API call from `web` to `api` returns a response
 - [ ] Drizzle migration runs on `api` startup and creates schema in Postgres
 
 ---
@@ -44,7 +44,7 @@ Set up the full project skeleton end-to-end: monorepo structure, Docker Compose 
 
 ### What to build
 
-End-to-end authentication: register page, login page, logout, and session persistence. Auth.js handles sessions stored in Postgres. All tRPC procedures (except register/login) reject unauthenticated requests. The UI reflects logged-in state.
+End-to-end authentication: register page, login page, logout, and session persistence. Backend API handles session issuance and validation using `session_id` cookies backed by Postgres. All API endpoints (except register/login) reject unauthenticated requests. The UI reflects logged-in state.
 
 ### Acceptance criteria
 
@@ -52,7 +52,7 @@ End-to-end authentication: register page, login page, logout, and session persis
 - [ ] User can log in and receives a session
 - [ ] User can log out and session is invalidated
 - [ ] Authenticated user sees their session persist across page refreshes
-- [ ] Unauthenticated requests to protected tRPC procedures return 401
+- [ ] Unauthenticated requests to protected API endpoints return 401
 - [ ] Register and login pages are publicly accessible
 
 ---

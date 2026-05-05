@@ -18,5 +18,6 @@ I want the same product that I bought last time. This will give a link that I bo
 - Training: I don't think I will use same tensorflow model, I will find a way to create a custom model for better accuracy
 - Storage - file and sqlite
 - Image processing - imagemagick (i probably need to resize the image)
+- Auth/session: backend-owned cookie sessions (`session_id`, HttpOnly)
 
 

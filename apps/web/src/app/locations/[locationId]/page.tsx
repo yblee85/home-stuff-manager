@@ -29,7 +29,7 @@ export default async function LocationPage({ params }: { params: Promise<{ locat
       <ul>
         {data.zones.map((z) => (
           <li key={z.id}>
-            {z.name}{' '}
+            <Link href={`/locations/${locationId}/zones/${z.id}`}>{z.name}</Link>{' '}
             <form
               action={async () => {
                 'use server'

@@ -87,12 +87,12 @@ Full item lifecycle without photo or ML. User can create an item inside a Zone, 
 
 ### Acceptance criteria
 
-- [ ] User can create an item inside a Zone with all fields
-- [ ] Item detail page shows all fields including a clickable purchase URL
-- [ ] User can edit any field on an existing item
-- [ ] User can delete an item
-- [ ] Items are listed within their Zone view
-- [ ] Tags are stored as an array and displayed on the item
+- [x] User can create an item inside a Zone with all fields
+- [x] Item detail page shows all fields including a clickable purchase URL
+- [x] User can edit any field on an existing item
+- [x] User can delete an item
+- [x] Items are listed within their Zone view
+- [x] Tags are stored as an array and displayed on the item
 
 ---
 

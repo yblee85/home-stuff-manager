@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --parallel --filter './apps/*' dev",
-    "test": "pnpm --filter api test",
+    "test": "pnpm --filter api test && pnpm --filter web test",
     "build": "pnpm --filter api build && pnpm --filter web build",
     "lint": "pnpm lint:api && pnpm lint:web",
     "lint:api": "eslint -c apps/api/eslint.config.mjs \"apps/api/src/**/*.ts\"",

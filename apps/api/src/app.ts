@@ -4,6 +4,7 @@ import cookie from '@fastify/cookie'
 import { runMigrations } from './db/migrate.js'
 import { authRoutes } from './routers/auth.js'
 import { authGuard } from './plugins/authGuard.js'
+import { itemRoutes } from './routers/items.js'
 import { locationRoutes } from './routers/locations.js'
 
 export type BuildAppOptions = {
@@ -28,6 +29,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   server.get('/health', async () => ({ status: 'ok' }))
   await server.register(authRoutes, { prefix: '/auth' })
   await server.register(locationRoutes)
+  await server.register(itemRoutes)
 
   return server
 }

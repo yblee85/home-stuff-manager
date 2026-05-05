@@ -4,17 +4,14 @@ import { buildApp } from './app.js'
 const jsonHeaders = { 'content-type': 'application/json' }
 
 describe('api (integration)', () => {
-  let app: Awaited<ReturnType<typeof buildApp>>
+  let app!: Awaited<ReturnType<typeof buildApp>>
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('DATABASE_URL must be set for integration tests (CI provides Postgres service).')
-    }
     app = await buildApp({ migrate: true, logger: false })
   })
 
   afterAll(async () => {
-    await app.close()
+    await app?.close()
   })
 
   it('GET /health', async () => {

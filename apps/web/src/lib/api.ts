@@ -20,6 +20,22 @@ export function getApiBaseUrl(): string {
   return apiBaseUrl()
 }
 
+export type ItemFields = {
+  id: string
+  zoneId: string
+  name: string
+  category: string | null
+  tags: string[]
+  purchaseUrl: string | null
+  specs: {
+    dimension?: { w: number; l: number; h: number; unit: string }
+    weight?: { value: number; unit: string }
+    info?: string
+  } | null
+  notes: string | null
+  createdAt: string
+}
+
 async function apiFetch(path: string, options?: RequestInit & { headers?: Record<string, string> }) {
   const res = await fetch(`${apiBaseUrl()}${path}`, {
     ...options,
@@ -72,5 +88,50 @@ export const api = {
       }) as Promise<{ id: string; name: string; createdAt: string }>,
     deleteZone: (cookieHeader: string, zoneId: string) =>
       fetch(`${apiBaseUrl()}/zones/${zoneId}`, { method: 'DELETE', headers: { Cookie: cookieHeader } }),
+  },
+  items: {
+    listInZone: (cookieHeader: string, locationId: string, zoneId: string) =>
+      apiFetch(`/locations/${locationId}/zones/${zoneId}/items`, { headers: { Cookie: cookieHeader } }) as Promise<{
+        items: ItemFields[]
+      }>,
+    create: (
+      cookieHeader: string,
+      locationId: string,
+      zoneId: string,
+      body: {
+        name: string
+        category?: string | null
+        tags?: string[]
+        purchaseUrl?: string | null
+        specs?: ItemFields['specs']
+        notes?: string | null
+      },
+    ) =>
+      apiFetch(`/locations/${locationId}/zones/${zoneId}/items`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: { Cookie: cookieHeader },
+      }) as Promise<ItemFields>,
+    get: (cookieHeader: string, itemId: string) =>
+      apiFetch(`/items/${itemId}`, { headers: { Cookie: cookieHeader } }) as Promise<ItemFields & { locationId: string }>,
+    update: (
+      cookieHeader: string,
+      itemId: string,
+      body: Partial<{
+        name: string
+        category: string | null
+        tags: string[]
+        purchaseUrl: string | null
+        specs: ItemFields['specs']
+        notes: string | null
+      }>,
+    ) =>
+      apiFetch(`/items/${itemId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+        headers: { Cookie: cookieHeader },
+      }) as Promise<ItemFields>,
+    delete: (cookieHeader: string, itemId: string) =>
+      fetch(`${apiBaseUrl()}/items/${itemId}`, { method: 'DELETE', headers: { Cookie: cookieHeader } }),
   },
 }

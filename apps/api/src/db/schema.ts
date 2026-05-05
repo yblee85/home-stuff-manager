@@ -1,4 +1,4 @@
-import { pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
+import { jsonb, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -46,5 +46,23 @@ export const zones = pgTable('zones', {
     .notNull()
     .references(() => locations.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const items = pgTable('items', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  zoneId: text('zone_id')
+    .notNull()
+    .references(() => zones.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  category: text('category'),
+  tags: jsonb('tags').$type<string[]>().notNull(),
+  purchaseUrl: text('purchase_url'),
+  specs: jsonb('specs').$type<{
+    dimension?: { w: number; l: number; h: number; unit: string }
+    weight?: { value: number; unit: string }
+    info?: string
+  } | null>(),
+  notes: text('notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })

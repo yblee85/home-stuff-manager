@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getSessionUser, logout } from '@/lib/auth'
 import { api } from '@/lib/api'
@@ -13,6 +14,9 @@ export default async function Home() {
       <h1>Home Stuff Manager</h1>
       <p>Welcome, {user.name ?? user.email}</p>
       <p>API status: {result.status}</p>
+      <p>
+        <Link href="/locations">Go to Locations</Link>
+      </p>
       <form
         action={async () => {
           'use server'

@@ -63,7 +63,7 @@ End-to-end authentication: register page, login page, logout, and session persis
 
 ### What to build
 
-Full end-to-end management of Locations and Zones. A user can create multiple Locations (e.g. home address), create Zones within each Location (e.g. kitchen, living room), and delete them. The creating user is automatically the owner. The UI lets users navigate between their Locations and Zones.
+Full end-to-end management of Locations and Zones. A user can create multiple Locations (e.g. home address), create Zones within each Location (e.g. kitchen, living room), and delete them. The creating user is automatically the owner via a membership join table. The UI lets users navigate between their Locations and Zones.
 
 ### Acceptance criteria
 

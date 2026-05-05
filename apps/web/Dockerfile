@@ -3,11 +3,11 @@ RUN corepack enable
 
 WORKDIR /repo
 
-COPY pnpm-workspace.yaml package.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
 
-RUN pnpm install --filter web
+RUN pnpm install --frozen-lockfile --filter web
 
 COPY apps/api/src ./apps/api/src
 COPY apps/web ./apps/web

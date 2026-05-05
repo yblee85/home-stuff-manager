@@ -1,5 +1,7 @@
-import { api } from './api'
 import { cookies } from 'next/headers'
+import { api } from './api'
+import { getRequestCookieHeader } from './cookieHeader'
+import { sessionCookieName } from './sessionCookie'
 
 export type SessionUser = {
   id: string
@@ -7,11 +9,8 @@ export type SessionUser = {
   name: string | null
 }
 
-const SESSION_COOKIE_NAME = 'session_id'
-
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const cookieStore = cookies()
-  const cookieHeader = cookieStore.toString()
+  const cookieHeader = await getRequestCookieHeader()
   if (!cookieHeader) return null
   try {
     const session = await api.auth.session(cookieHeader)
@@ -21,20 +20,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   }
 }
 
-export async function loginWithCredentials(email: string, password: string) {
-  const { user, sessionId } = await api.auth.login({ email, password })
-  if (!sessionId) throw new Error('Login succeeded but no session cookie returned')
-  cookies().set(SESSION_COOKIE_NAME, sessionId, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-  })
-  return user
-}
-
 export async function logout() {
-  const cookieStore = cookies()
-  await api.auth.logout(cookieStore.toString())
-  cookieStore.delete(SESSION_COOKIE_NAME)
+  const cookieHeader = await getRequestCookieHeader()
+  await api.auth.logout(cookieHeader)
+  const jar = await cookies()
+  jar.delete(sessionCookieName())
 }

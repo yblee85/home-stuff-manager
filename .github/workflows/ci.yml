@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: homestuff_test
+        options: >-
+          --health-cmd "pg_isready -U postgres -d homestuff_test"
+          --health-interval 4s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/homestuff_test
+      # Next.js reads this at build for server code paths; URL is arbitrary for typecheck/build.
+      API_URL: http://127.0.0.1:3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: API typecheck & build
+        run: pnpm --filter api build
+
+      - name: API integration tests
+        working-directory: apps/api
+        run: pnpm test
+
+      - name: Web build
+        run: pnpm --filter web build

@@ -1,9 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { and, eq, gt } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { db } from '../db/index.js'
 import { sessions, users } from '../db/schema.js'
+import { getSessionIdFromCookieHeader, getUserFromRequestSession } from '../auth.js'
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -18,14 +19,6 @@ const loginSchema = z.object({
 
 const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? 'session_id'
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS ?? 1000 * 60 * 60 * 24 * 7)
-
-function getSessionId(rawCookieHeader: string | undefined) {
-  if (!rawCookieHeader) return null
-  const pairs = rawCookieHeader.split(';').map((part) => part.trim())
-  const cookie = pairs.find((part) => part.startsWith(`${SESSION_COOKIE_NAME}=`))
-  if (!cookie) return null
-  return cookie.slice(`${SESSION_COOKIE_NAME}=`.length)
-}
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/register', async (req, reply) => {
@@ -75,39 +68,19 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.get('/session', async (req, reply) => {
-    const sessionId = getSessionId(req.headers.cookie)
-    if (!sessionId) return reply.status(401).send({ error: 'Unauthenticated' })
-
-    const now = new Date()
-    const [session] = await db
-      .select({
-        id: sessions.id,
-        userId: sessions.userId,
-        expiresAt: sessions.expiresAt,
-        email: users.email,
-        name: users.name,
-      })
-      .from(sessions)
-      .innerJoin(users, eq(users.id, sessions.userId))
-      .where(and(eq(sessions.id, sessionId), gt(sessions.expiresAt, now)))
-      .limit(1)
-
-    if (!session) {
+    const user = await getUserFromRequestSession(req, SESSION_COOKIE_NAME)
+    if (!user) {
       reply.clearCookie(SESSION_COOKIE_NAME, { path: '/' })
       return reply.status(401).send({ error: 'Unauthenticated' })
     }
 
     return {
-      user: {
-        id: session.userId,
-        email: session.email,
-        name: session.name,
-      },
+      user,
     }
   })
 
   fastify.post('/logout', async (req, reply) => {
-    const sessionId = getSessionId(req.headers.cookie)
+    const sessionId = getSessionIdFromCookieHeader(req.headers.cookie, SESSION_COOKIE_NAME)
     if (sessionId) {
       await db.delete(sessions).where(eq(sessions.id, sessionId))
     }

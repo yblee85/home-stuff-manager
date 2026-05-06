@@ -54,6 +54,7 @@ export default async function ZoneItemsPage({
 
       <h2>Add item</h2>
       <form
+        encType="multipart/form-data"
         action={async (formData) => {
           'use server'
           const { createItemAction } = await import('./actions')
@@ -107,6 +108,10 @@ export default async function ZoneItemsPage({
         <div>
           <label htmlFor="notes">Notes</label>
           <textarea id="notes" name="notes" rows={2} />
+        </div>
+        <div>
+          <label htmlFor="photo">Photo (optional)</label>
+          <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
         </div>
         <button type="submit">Create item</button>
       </form>

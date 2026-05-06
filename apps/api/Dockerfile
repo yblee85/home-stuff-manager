@@ -1,4 +1,7 @@
 FROM node:22-alpine
+RUN apk add --no-cache imagemagick \
+  && command -v magick \
+  && magick -version
 RUN corepack enable
 
 WORKDIR /repo

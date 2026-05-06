@@ -20,6 +20,16 @@ export function getApiBaseUrl(): string {
   return apiBaseUrl()
 }
 
+/**
+ * URL the **browser** can use (e.g. `<img src>`). When `API_URL` is `http://api:3001`, set
+ * `NEXT_PUBLIC_API_URL=http://localhost:3001` (or your host) so images load outside Docker network.
+ */
+export function getPublicApiBaseUrl(): string {
+  const pub = process.env.NEXT_PUBLIC_API_URL
+  if (pub?.trim()) return pub.replace(/\/$/, '')
+  return apiBaseUrl()
+}
+
 export type ItemFields = {
   id: string
   zoneId: string
@@ -33,6 +43,7 @@ export type ItemFields = {
     info?: string
   } | null
   notes: string | null
+  photoUrl: string | null
   createdAt: string
 }
 
@@ -112,6 +123,36 @@ export const api = {
         body: JSON.stringify(body),
         headers: { Cookie: cookieHeader },
       }) as Promise<ItemFields>,
+    /** `multipart/form-data` (same field names as the add-item form + optional `photo` file). */
+    createFromForm: async (
+      cookieHeader: string,
+      locationId: string,
+      zoneId: string,
+      formData: FormData,
+    ) => {
+      const res = await fetch(`${apiBaseUrl()}/locations/${locationId}/zones/${zoneId}/items`, {
+        method: 'POST',
+        headers: { Cookie: cookieHeader },
+        body: formData,
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Request failed' }))
+        throw new ApiError(err.error ?? 'Request failed', res.status)
+      }
+      return res.json() as Promise<ItemFields>
+    },
+    uploadPhoto: async (cookieHeader: string, itemId: string, formData: FormData) => {
+      const res = await fetch(`${apiBaseUrl()}/items/${itemId}/photo`, {
+        method: 'POST',
+        headers: { Cookie: cookieHeader },
+        body: formData,
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Request failed' }))
+        throw new ApiError(err.error ?? 'Request failed', res.status)
+      }
+      return res.json() as Promise<ItemFields>
+    },
     get: (cookieHeader: string, itemId: string) =>
       apiFetch(`/items/${itemId}`, { headers: { Cookie: cookieHeader } }) as Promise<ItemFields & { locationId: string }>,
     update: (

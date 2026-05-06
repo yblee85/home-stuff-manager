@@ -64,5 +64,6 @@ export const items = pgTable('items', {
     info?: string
   } | null>(),
   notes: text('notes'),
+  photoPath: text('photo_path'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })

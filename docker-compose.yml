@@ -23,12 +23,14 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./apps/api/src:/repo/apps/api/src
       - ./apps/api/drizzle:/repo/apps/api/drizzle
+      - item_photos:/data/uploads
 
   web:
     build:
@@ -50,3 +52,4 @@ services:
 
 volumes:
   pgdata:
+  item_photos:

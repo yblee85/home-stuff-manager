@@ -7,7 +7,7 @@
     "build": "pnpm --filter api build && pnpm --filter web build",
     "lint": "pnpm lint:api && pnpm lint:web",
     "lint:api": "eslint -c apps/api/eslint.config.mjs \"apps/api/src/**/*.ts\"",
-    "lint:web": "pnpm --filter web exec next lint"
+    "lint:web": "pnpm --filter web lint"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",

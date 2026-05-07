@@ -3,6 +3,10 @@ import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db } from '../db/index.js'
 import { items, locationMembers, zones } from '../db/schema.js'
+import { removeStoredItemDir } from '../lib/itemPhotoStorage.js'
+import { payloadFromFormFieldMap } from '../lib/parseItemFieldsFromParts.js'
+import { processUploadToItemPhoto } from '../lib/processItemPhoto.js'
+import { getUploadRoot } from '../lib/uploadRoot.js'
 
 const dimensionSchema = z.object({
   w: z.number(),
@@ -41,6 +45,11 @@ const updateItemSchema = z.object({
   specs: specsSchema.nullable(),
   notes: z.string().optional().nullable(),
 })
+
+function photoPublicUrl(storagePath: string | null): string | null {
+  if (!storagePath) return null
+  return `/files/${storagePath.replace(/\\/g, '/')}`
+}
 
 async function assertLocationMember(locationId: string, userId: string) {
   const [m] = await db
@@ -87,6 +96,7 @@ function mapItem(row: typeof items.$inferSelect) {
     purchaseUrl: row.purchaseUrl,
     specs: row.specs,
     notes: row.notes,
+    photoUrl: photoPublicUrl(row.photoPath),
     createdAt: row.createdAt,
   }
 }
@@ -106,11 +116,70 @@ export const itemRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/locations/:locationId/zones/:zoneId/items', async (req, reply) => {
     if (!req.user) return reply.status(401).send({ error: 'Unauthenticated' })
     const { locationId, zoneId } = req.params as { locationId: string; zoneId: string }
-    const body = createItemSchema.safeParse(req.body)
-    if (!body.success) return reply.status(400).send({ error: 'Invalid input' })
 
     const ok = await assertZoneInLocation(zoneId, locationId, req.user.id)
     if (!ok) return reply.status(404).send({ error: 'Not found' })
+
+    const ct = req.headers['content-type'] ?? ''
+
+    if (ct.includes('multipart/form-data')) {
+      const fields = new Map<string, string>()
+      let photoBuffer: Buffer | null = null
+      const parts = req.parts()
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          if (part.fieldname === 'photo') {
+            const buf = await part.toBuffer()
+            if (buf.length > 0) photoBuffer = buf
+          } else {
+            await part.toBuffer()
+          }
+        } else if (part.fieldname) {
+          fields.set(part.fieldname, String(part.value ?? ''))
+        }
+      }
+
+      const parsedFields = payloadFromFormFieldMap(fields)
+      if ('error' in parsedFields) return reply.status(400).send({ error: parsedFields.error })
+
+      const body = createItemSchema.safeParse(parsedFields.data)
+      if (!body.success) return reply.status(400).send({ error: 'Invalid input' })
+
+      const [row] = await db
+        .insert(items)
+        .values({
+          zoneId,
+          name: body.data.name,
+          category: body.data.category ?? null,
+          tags: body.data.tags ?? [],
+          purchaseUrl: body.data.purchaseUrl?.trim() ? body.data.purchaseUrl.trim() : null,
+          specs: body.data.specs ?? null,
+          notes: body.data.notes?.trim() ? body.data.notes.trim() : null,
+        })
+        .returning()
+
+      if (!row) return reply.status(500).send({ error: 'Failed to create item' })
+
+      if (photoBuffer) {
+        try {
+          const rel = await processUploadToItemPhoto(getUploadRoot(), row.id, photoBuffer)
+          const [updated] = await db.update(items).set({ photoPath: rel }).where(eq(items.id, row.id)).returning()
+          return reply.status(201).send(mapItem(updated!))
+        } catch (e) {
+          await db.delete(items).where(eq(items.id, row.id))
+          req.log.error(e)
+          if (e instanceof Error && e.message === 'Unsupported image format') {
+            return reply.status(400).send({ error: e.message })
+          }
+          return reply.status(400).send({ error: 'Photo processing failed' })
+        }
+      }
+
+      return reply.status(201).send(mapItem(row))
+    }
+
+    const body = createItemSchema.safeParse(req.body)
+    if (!body.success) return reply.status(400).send({ error: 'Invalid input' })
 
     const [row] = await db
       .insert(items)
@@ -126,6 +195,35 @@ export const itemRoutes: FastifyPluginAsync = async (fastify) => {
       .returning()
 
     return reply.status(201).send(mapItem(row!))
+  })
+
+  fastify.post('/items/:itemId/photo', async (req, reply) => {
+    if (!req.user) return reply.status(401).send({ error: 'Unauthenticated' })
+    const itemId = (req.params as { itemId: string }).itemId
+
+    const existing = await getItemWithLocationForUser(itemId, req.user.id)
+    if (!existing) return reply.status(404).send({ error: 'Not found' })
+
+    const file = await req.file()
+    if (!file) return reply.status(400).send({ error: 'No file' })
+    if (file.fieldname !== 'photo') return reply.status(400).send({ error: 'Expected field name photo' })
+
+    const buf = await file.toBuffer()
+    if (buf.length === 0) return reply.status(400).send({ error: 'Empty file' })
+
+    await removeStoredItemDir(existing.item.photoPath)
+
+    try {
+      const rel = await processUploadToItemPhoto(getUploadRoot(), itemId, buf)
+      const [updated] = await db.update(items).set({ photoPath: rel }).where(eq(items.id, itemId)).returning()
+      return mapItem(updated!)
+    } catch (e) {
+      req.log.error(e)
+      if (e instanceof Error && e.message === 'Unsupported image format') {
+        return reply.status(400).send({ error: e.message })
+      }
+      return reply.status(400).send({ error: 'Photo processing failed' })
+    }
   })
 
   fastify.get('/items/:itemId', async (req, reply) => {
@@ -175,6 +273,7 @@ export const itemRoutes: FastifyPluginAsync = async (fastify) => {
     const existing = await getItemWithLocationForUser(itemId, req.user.id)
     if (!existing) return reply.status(404).send({ error: 'Not found' })
 
+    await removeStoredItemDir(existing.item.photoPath)
     await db.delete(items).where(eq(items.id, itemId))
     return { ok: true }
   })

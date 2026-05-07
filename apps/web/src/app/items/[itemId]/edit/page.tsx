@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { ApiError, api } from '@/lib/api'
+import { ApiError, api, getPublicApiBaseUrl } from '@/lib/api'
 import { getRequestCookieHeader } from '@/lib/cookieHeader'
 
 export default async function ItemEditPage({ params }: { params: Promise<{ itemId: string }> }) {
@@ -26,6 +26,33 @@ export default async function ItemEditPage({ params }: { params: Promise<{ itemI
         <Link href={`/items/${itemId}`}>← Cancel</Link>
       </p>
       <h1>Edit {rest.name}</h1>
+      <section>
+        <h2>Photo</h2>
+        {rest.photoUrl ? (
+          <p>
+            {/* eslint-disable-next-line @next/next/no-img-element -- binary from API /files */}
+            <img
+              src={`${getPublicApiBaseUrl()}${rest.photoUrl}`}
+              alt=""
+              style={{ maxWidth: '100%', maxHeight: 240, height: 'auto' }}
+            />
+          </p>
+        ) : (
+          <p>No photo yet.</p>
+        )}
+        <form
+          encType="multipart/form-data"
+          action={async (formData) => {
+            'use server'
+            const { uploadItemPhotoAction } = await import('../actions')
+            await uploadItemPhotoAction(itemId, formData)
+          }}
+        >
+          <label htmlFor="photo_upload">Upload or replace photo</label>
+          <input id="photo_upload" name="photo" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+          <button type="submit">Upload photo</button>
+        </form>
+      </section>
       <form
         action={async (formData) => {
           'use server'

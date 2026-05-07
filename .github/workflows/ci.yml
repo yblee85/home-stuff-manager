@@ -47,6 +47,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Install ImageMagick (API photo integration tests)
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+
       - name: Lint
         run: pnpm lint
 
@@ -55,6 +58,8 @@ jobs:
 
       - name: API integration tests
         working-directory: apps/api
+        env:
+          UPLOAD_DIR: ${{ runner.temp }}/homestuff-api-uploads
         run: pnpm test
 
       - name: Web unit tests

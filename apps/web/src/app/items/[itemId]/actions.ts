@@ -29,3 +29,15 @@ export async function updateItemAction(
   })
   redirect(`/items/${itemId}`)
 }
+
+export async function uploadItemPhotoAction(itemId: string, formData: FormData) {
+  const cookieHeader = await getRequestCookieHeader()
+  const file = formData.get('photo')
+  if (!file || typeof file === 'string' || file.size === 0) {
+    throw new Error('Select an image file')
+  }
+  const fd = new FormData()
+  fd.append('photo', file)
+  await api.items.uploadPhoto(cookieHeader, itemId, fd)
+  redirect(`/items/${itemId}`)
+}

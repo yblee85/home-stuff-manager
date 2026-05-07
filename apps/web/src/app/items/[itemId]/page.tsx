@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { ApiError, api } from '@/lib/api'
+import { ApiError, api, getPublicApiBaseUrl } from '@/lib/api'
 import { getRequestCookieHeader } from '@/lib/cookieHeader'
 
 export default async function ItemDetailPage({ params }: { params: Promise<{ itemId: string }> }) {
@@ -26,6 +26,16 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ ite
         <Link href={`/locations/${locationId}/zones/${zoneId}`}>← Back to zone</Link>
       </p>
       <h1>{rest.name}</h1>
+      {rest.photoUrl ? (
+        <p>
+          {/* eslint-disable-next-line @next/next/no-img-element -- binary from API /files */}
+          <img
+            src={`${getPublicApiBaseUrl()}${rest.photoUrl}`}
+            alt=""
+            style={{ maxWidth: '100%', maxHeight: 360, height: 'auto' }}
+          />
+        </p>
+      ) : null}
       {rest.category ? <p>Category: {rest.category}</p> : null}
       {rest.tags.length > 0 ? (
         <p>

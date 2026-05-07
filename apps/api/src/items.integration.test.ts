@@ -1,3 +1,4 @@
+import FormData from 'form-data'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from './app.js'
 
@@ -187,5 +188,72 @@ describe('items API (integration)', () => {
       headers: jsonHeaders,
     })
     expect(res.statusCode).toBe(401)
+  })
+
+  /** 1×1 transparent PNG */
+  const tinyPng = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  )
+
+  it('uploads, serves, and replaces item photo', async () => {
+    const { cookie } = await registerAndLogin(app, 'items-photo')
+    const h = authHeaders(cookie)
+
+    const location = JSON.parse(
+      (await app.inject({ method: 'POST', url: '/locations', headers: h, payload: { name: 'L' } })).payload,
+    ) as { id: string }
+    const zone = JSON.parse(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/locations/${location.id}/zones`,
+          headers: h,
+          payload: { name: 'Z' },
+        })
+      ).payload,
+    ) as { id: string }
+
+    const create = JSON.parse(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/locations/${location.id}/zones/${zone.id}/items`,
+          headers: h,
+          payload: { name: 'Thing' },
+        })
+      ).payload,
+    ) as { id: string; photoUrl: string | null }
+    expect(create.photoUrl).toBeNull()
+
+    const form1 = new FormData()
+    form1.append('photo', tinyPng, { filename: 'one.png', contentType: 'image/png' })
+    const up1 = await app.inject({
+      method: 'POST',
+      url: `/items/${create.id}/photo`,
+      headers: { ...form1.getHeaders(), cookie },
+      payload: form1,
+    })
+    expect(up1.statusCode).toBe(200)
+    const withPhoto = JSON.parse(up1.payload) as { photoUrl: string | null }
+    expect(withPhoto.photoUrl).toMatch(/^\/files\/items\/[^/]+\/photo\.jpg$/)
+
+    const fileRes = await app.inject({ method: 'GET', url: withPhoto.photoUrl! })
+    expect(fileRes.statusCode).toBe(200)
+    expect(fileRes.headers['content-type']).toMatch(/image\/jpeg/)
+
+    const form2 = new FormData()
+    form2.append('photo', tinyPng, { filename: 'two.png', contentType: 'image/png' })
+    const up2 = await app.inject({
+      method: 'POST',
+      url: `/items/${create.id}/photo`,
+      headers: { ...form2.getHeaders(), cookie },
+      payload: form2,
+    })
+    expect(up2.statusCode).toBe(200)
+    const again = JSON.parse(up2.payload) as { photoUrl: string | null }
+    expect(again.photoUrl).toBe(withPhoto.photoUrl)
+
+    await app.inject({ method: 'DELETE', url: `/items/${create.id}`, headers: { cookie } })
   })
 })

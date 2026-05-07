@@ -7,6 +7,15 @@ permissions:
   pull-requests: write
 
 jobs:
+  debug-context:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "github.actor=${{ github.actor }}"
+          echo "triggering_actor=${{ github.triggering_actor }}"
+          echo "pr author=${{ github.event.pull_request.user.login }}"
+          echo "event=${{ github.event_name }}"
+
   auto-merge:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'

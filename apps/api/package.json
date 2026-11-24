@@ -17,7 +17,7 @@
     "@fastify/cookie": "^11.1.5",
     "@fastify/cors": "^11.4.3",
     "@fastify/multipart": "^10.1.8",
-    "@fastify/static": "^10.1.8",
+    "@fastify/static": "^10.1.12",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
     "fastify": "^5.12.8",
